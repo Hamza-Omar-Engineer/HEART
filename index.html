@@ -2,9 +2,11 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Heart Animation Like Video</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Heart Glow Mobile First</title>
     <style>
       body {
         margin: 0;
@@ -16,47 +18,51 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
+        width: 100vw;
         overflow: hidden;
       }
 
-      /* واجهة إدخال الاسم */
+      /* واجهة إدخال الاسم - متجاوبة تماماً */
       #input-container {
         text-align: center;
-        background: rgba(20, 20, 20, 0.8);
-        padding: 40px;
+        background: rgba(10, 10, 10, 0.85);
+        padding: 30px 20px;
         border-radius: 20px;
-        box-shadow: 0 0 30px rgba(255, 20, 147, 0.2);
-        backdrop-filter: blur(10px);
+        box-shadow: 0 0 40px rgba(255, 20, 147, 0.25);
+        backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.05);
         z-index: 10;
-        transition: all 0.5s ease;
+        width: 85%;
+        max-width: 320px;
+        box-sizing: border-box;
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       h2 {
         font-weight: 300;
-        margin-bottom: 25px;
-        letter-spacing: 1px;
+        font-size: 1.4rem;
+        margin-bottom: 20px;
         color: #fff;
         text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
       }
 
       input {
-        padding: 12px 20px;
-        font-size: 18px;
+        padding: 12px 18px;
+        font-size: 16px;
         border-radius: 30px;
         border: 1.5px solid #ff1493;
-        background: #111;
+        background: #0a0a0a;
         color: white;
         text-align: center;
         margin-bottom: 20px;
         outline: none;
-        width: 80%;
-        max-width: 250px;
+        width: 90%;
+        box-sizing: border-box;
         transition: 0.3s;
       }
 
       input:focus {
-        box-shadow: 0 0 15px rgba(255, 20, 147, 0.6);
+        box-shadow: 0 0 20px rgba(255, 20, 147, 0.7);
         background: #000;
       }
 
@@ -72,11 +78,12 @@
         transition: 0.3s ease;
         display: block;
         margin: 0 auto;
+        width: 80%;
       }
 
       button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 20px #ff1493;
+        transform: scale(1.02);
+        box-shadow: 0 0 25px #ff1493;
       }
 
       .hidden {
@@ -105,36 +112,42 @@
         z-index: 1;
       }
 
-      /* النصوص داخل القلب */
+      /* النصوص الأنيقة المتجاوبة داخل القلب */
       #text-inside-heart {
         position: absolute;
         text-align: center;
         font-family: "Georgia", "Times New Roman", serif;
         z-index: 2;
         pointer-events: none;
-        transform: translateY(-10px);
+        width: 100%;
+        padding: 0 10px;
+        box-sizing: border-box;
+        /* موازنة بصرية لمركز ثقل معادلة القلب الرياضية */
+        transform: translateY(-2vh);
         opacity: 0;
-        transition: opacity 2s ease-in-out;
+        transition: opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       #displayName {
-        font-size: 2.5rem;
+        /* حجم ديناميكي يعتمد على عرض الشاشة ليلائم الموبايل */
+        font-size: min(7vw, 2.5rem);
         color: #ffffff;
         font-weight: bold;
         letter-spacing: 4px;
         text-shadow:
-          0 0 15px rgba(255, 255, 255, 0.6),
-          0 0 30px rgba(255, 20, 147, 0.8);
+          0 0 12px rgba(255, 255, 255, 0.7),
+          0 0 25px rgba(255, 20, 147, 0.9);
         display: block;
         margin-bottom: 8px;
+        word-wrap: break-word;
       }
 
       .sub-text {
-        font-size: 0.8rem;
+        font-size: min(2.5vw, 0.75rem);
         color: #ffb6c1;
-        letter-spacing: 6px;
+        letter-spacing: 5px;
         font-weight: bold;
-        text-shadow: 0 0 8px rgba(255, 20, 147, 0.6);
+        text-shadow: 0 0 8px rgba(255, 20, 147, 0.7);
         display: block;
         white-space: nowrap;
       }
@@ -164,17 +177,30 @@
       const canvas = document.getElementById("heartCanvas");
       const ctx = canvas.getContext("2d");
 
-      let stage = "ecg"; // المراحل: ecg -> explosion -> heart
-      let ecgX = 0;
-      let ecgPoints = [];
-      let heartLines = [];
-      let petals = [];
-      let globalAlpha = 1;
+      let stage = "ecg";
       let frameCount = 0;
+      let ecgProgress = 0;
+      const ecgSpeed = 0.009; // تسريع النبضة قليلاً لتناسب تجربة الموبايل السريعة
+      let heartParticles = [];
+      let petals = [];
+
+      const colors = [
+        "#ff0055",
+        "#ff1493",
+        "#ff69b4",
+        "#ff85a2",
+        "#ffffff",
+        "#ff007f",
+      ];
 
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+
+        // إعادة حساب مواقع الجسيمات عند تدوير الشاشة في الموبايل
+        if (heartParticles.length > 0 && stage === "heart") {
+          updateParticlesScale();
+        }
       }
       window.addEventListener("resize", resizeCanvas);
 
@@ -193,39 +219,11 @@
           .classList.remove("hidden");
 
         resizeCanvas();
-        initECG();
+        initHeartParticles();
         initPetals();
         animate();
       }
 
-      // 1. إعداد مسار نبضات القلب (ECG)
-      function initECG() {
-        ecgX = 0;
-        ecgPoints = [];
-        const centerY = canvas.height / 2;
-        const width = canvas.width;
-
-        // بناء خط نبضات مخصص يحاكي الفيديو بدقة
-        for (let x = 0; x < width * 0.7; x++) {
-          let y = centerY;
-          let relX = x - width * 0.35; // مركز النبضة في الثلث الأول من الشاشة تقريباً
-
-          if (relX > -50 && relX < 50) {
-            if (relX > -50 && relX < -30) y = centerY - (relX + 50) * 2;
-            else if (relX >= -30 && relX < -10)
-              y = centerY + (relX + 30) * 4 - 40;
-            else if (relX >= -10 && relX < 10)
-              y = centerY - (relX + 10) * 12 + 40;
-            else if (relX >= 10 && relX < 30)
-              y = centerY + (relX - 10) * 6 - 200;
-            else if (relX >= 30 && relX < 50)
-              y = centerY - (relX - 30) * 4 + 120;
-          }
-          ecgPoints.push({ x: x, y: y });
-        }
-      }
-
-      // المعادلة الرياضية للقلب
       function getHeartPoint(t) {
         return {
           x: 16 * Math.pow(Math.sin(t), 3),
@@ -237,146 +235,214 @@
         };
       }
 
-      // 2. إعداد خطوط وهيكل القلب الهندسي
-      function initHeartLines() {
-        const totalLines = 90;
-        const baseScale = Math.min(canvas.width, canvas.height) / 30;
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2 - 20;
+      // حساب المقياس الأمثل للقلب بناءً على أبعاد الشاشة الحالية للموبايل
+      function getOptimalScale() {
+        // يقسم البعد الأصغر لضمان احتواء القلب بالكامل وعدم خروجه أبداً
+        return Math.min(canvas.width, canvas.height) / 30;
+      }
 
-        for (let i = 0; i < totalLines; i++) {
-          let t = (i / totalLines) * Math.PI * 2;
-          let p = getHeartPoint(t);
+      class HeartParticle {
+        constructor(angle, isExplosion = false) {
+          this.angle = angle;
+          this.isExplosion = isExplosion;
+          this.reset();
+        }
 
-          // إحداثيات النقطة الخارجية على إطار القلب
-          let targetX = cx + p.x * baseScale;
-          let targetY = cy - p.y * baseScale;
+        reset() {
+          const baseScale = getOptimalScale();
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2 - 20;
+          const p = getHeartPoint(this.angle);
 
-          heartLines.push({
-            angle: t,
-            startX: cx + (Math.random() - 0.5) * 40, // تنطلق من مركز قريب جداً
-            startY: cy + (Math.random() - 0.5) * 40,
-            targetX: targetX,
-            targetY: targetY,
-            currentX: cx,
-            currentY: cy,
-            speed: Math.random() * 0.03 + 0.02,
-            progress: 0,
-            lengthFactor: Math.random() * 0.4 + 0.6, // أطوال متفاوتة للخطوط لتعطي عمق الشرر
-          });
+          this.targetX = cx + p.x * baseScale;
+          this.targetY = cy - p.y * baseScale;
+
+          if (this.isExplosion) {
+            // انطلاق الشرر من نهاية خط النبض
+            this.x = cx - Math.min(canvas.width * 0.15, 100);
+            this.y = cy;
+            const angleRand = Math.random() * Math.PI * 2;
+            const speedRand = Math.random() * 6 + 3; // تقليل السرعة قليلاً للموبايل للحفاظ على المظهر الكثيف
+            this.vx = Math.sin(angleRand) * speedRand;
+            this.vy = Math.cos(angleRand) * speedRand;
+            this.alpha = 1;
+            this.decay = Math.random() * 0.025 + 0.015;
+            this.size = Math.random() * 2.5 + 1.2;
+          } else {
+            this.x = this.targetX + (Math.random() - 0.5) * 10;
+            this.y = this.targetY + (Math.random() - 0.5) * 10;
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.alpha = Math.random() * 0.6 + 0.4;
+            this.decay = Math.random() * 0.015 + 0.003;
+            this.size = Math.random() * 2 + 0.8;
+          }
+
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        update() {
+          if (this.isExplosion) {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.alpha -= this.decay;
+            if (this.alpha <= 0) {
+              this.isExplosion = false;
+              this.reset();
+            }
+          } else {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.x += (this.targetX - this.x) * 0.06;
+            this.y += (this.targetY - this.y) * 0.06;
+
+            this.alpha -= this.decay;
+            if (this.alpha <= 0) {
+              this.reset();
+            }
+          }
+        }
+
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = this.alpha;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.shadowBlur = this.isExplosion ? 15 : 10;
+          ctx.shadowColor = this.color;
+          ctx.fill();
+          ctx.restore();
         }
       }
 
-      // 3. إعداد بتلات الورد المتساقطة
+      // توازن مالي بين الفخامة العالية والأداء السلس على الجوال (500 جسيم للهيكل)
+      function initHeartParticles() {
+        heartParticles = [];
+        for (let i = 0; i < 500; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          heartParticles.push(new HeartParticle(angle, false));
+        }
+      }
+
+      function updateParticlesScale() {
+        const baseScale = getOptimalScale();
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2 - 20;
+        heartParticles.forEach((p) => {
+          const pt = getHeartPoint(p.angle);
+          p.targetX = cx + pt.x * baseScale;
+          p.targetY = cy - pt.y * baseScale;
+        });
+      }
+
+      function triggerExplosion() {
+        for (let i = 0; i < 180; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          heartParticles.push(new HeartParticle(angle, true));
+        }
+      }
+
       function initPetals() {
-        for (let i = 0; i < 40; i++) {
+        petals = [];
+        const count = Math.min(25, canvas.width / 15); // تقليل عدد البتلات المتساقطة على الشاشات الصغيرة لتجنب الازدحام
+        for (let i = 0; i < count; i++) {
           petals.push({
             x: Math.random() * canvas.width,
             y: Math.random() * -canvas.height,
-            size: Math.random() * 6 + 4,
-            speedY: Math.random() * 1.5 + 1,
-            speedX: Math.random() * 1 - 0.5,
+            size: Math.random() * 4 + 3,
+            speedY: Math.random() * 1.0 + 0.7,
+            speedX: Math.random() * 0.6 - 0.3,
             rotation: Math.random() * Math.PI,
             rotSpeed: Math.random() * 0.02 - 0.01,
           });
         }
       }
 
-      // محرك الأنيميشن الرئيسي
+      function drawECGLine(progress) {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2 - 20;
+        // تعديل طول النبضة ليتناسب بدقة مع عرض شاشة الهاتف الذكي
+        const eLength = Math.min(canvas.width * 0.85, 500);
+        const startX = cx - eLength / 2;
+        const endX = cx + eLength / 2;
+        const currentMaxX = startX + (endX - startX) * progress;
+
+        ctx.beginPath();
+        ctx.strokeStyle = "#ff1493";
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#ff1493";
+
+        let first = true;
+        for (let x = startX; x <= currentMaxX; x += 3) {
+          let y = cy;
+          let relX = x - (cx - Math.min(eLength * 0.15, 80));
+
+          if (relX > -40 && relX < 40) {
+            if (relX > -40 && relX < -25) y = cy - (relX + 40) * 1.5;
+            else if (relX >= -25 && relX < -10) y = cy + (relX + 25) * 3 - 22;
+            else if (relX >= -10 && relX < 0) y = cy - (relX + 10) * 12 + 22;
+            else if (relX >= 0 && relX < 15) y = cy + relX * 9 - 180;
+            else if (relX >= 15 && relX < 25) y = cy - (relX - 15) * 6 + 135;
+            else if (relX >= 25 && relX < 40) y = cy + (relX - 25) * 2.5 - 45;
+          }
+
+          if (first) {
+            ctx.moveTo(x, y);
+            first = false;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      }
+
       function animate() {
         frameCount++;
 
-        // خلفية سوداء نقية مع تأثير تلاشي خفيف جداً لترك أثر الخطوط المتوهجة خلفها
-        ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.14)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // --- المرحلة الأولى: نبض الـ ECG ---
         if (stage === "ecg") {
-          ctx.beginPath();
-          ctx.strokeStyle = "#ff1493";
-          ctx.lineWidth = 4;
-          ctx.shadowBlur = 15;
-          ctx.shadowColor = "#ff1493";
+          ecgProgress += ecgSpeed;
+          if (ecgProgress > 1) ecgProgress = 1;
 
-          let drawnCount = 0;
-          for (let i = 0; i < ecgPoints.length; i++) {
-            if (ecgPoints[i].x <= ecgX) {
-              if (i === 0) ctx.moveTo(ecgPoints[i].x, ecgPoints[i].y);
-              else ctx.lineTo(ecgPoints[i].x, ecgPoints[i].y);
-              drawnCount++;
-            }
-          }
-          ctx.stroke();
+          drawECGLine(ecgProgress);
 
-          // حركة مؤشر النبض
-          ecgX += 12;
-
-          // عند انتهاء النبضة بالكامل، ننتقل لمرحلة الانفجار وبناء القلب
-          if (drawnCount >= ecgPoints.length) {
+          if (ecgProgress >= 1) {
             stage = "heart";
-            initHeartLines();
-            // إظهار النص في المنتصف تدريجياً
+            triggerExplosion();
             setTimeout(() => {
-              const textDiv = document.getElementById("text-inside-heart");
-              textDiv.style.opacity = "1";
-            }, 300);
+              document.getElementById("text-inside-heart").style.opacity = "1";
+            }, 400);
           }
         }
 
-        // --- المرحلة الثانية والثالثة: تشكيل وهيكل القلب البارق ---
         if (stage === "heart") {
-          heartLines.forEach((line) => {
-            if (line.progress < 1) {
-              line.progress += line.speed;
-              // حركة انسيابية ممتدة من المركز إلى الخارج
-              line.currentX =
-                line.startX + (line.targetX - line.startX) * line.progress;
-              line.currentY =
-                line.startY + (line.targetY - line.startY) * line.progress;
-            } else {
-              // تأثير النبض والوميض المستمر بعد اكتمال تشكيل الهيكل
-              let pulse = Math.sin(frameCount * 0.08 + line.angle * 4) * 10;
-              let baseScale = Math.min(canvas.width, canvas.height) / 30;
-              let p = getHeartPoint(line.angle);
-              line.currentX =
-                canvas.width / 2 + p.x * (baseScale + pulse * 0.2);
-              line.currentY =
-                canvas.height / 2 - 20 - p.y * (baseScale + pulse * 0.2);
+          let globalPulse = 1 + Math.max(0, Math.sin(frameCount * 0.08) * 0.05);
+          const baseScale = getOptimalScale() * globalPulse;
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2 - 20;
+
+          heartParticles.forEach((particle) => {
+            particle.update();
+
+            if (!particle.isExplosion) {
+              const p = getHeartPoint(particle.angle);
+              particle.targetX = cx + p.x * baseScale;
+              particle.targetY = cy - p.y * baseScale;
             }
 
-            // رسم الخطوط الشعاعية المضيئة المتجهة للهيكل
-            ctx.beginPath();
-            ctx.moveTo(line.startX, line.startY);
-            ctx.lineTo(line.currentX, line.currentY);
-
-            // الألوان المتدرجة بين الأحمر والوردي النيون والأبيض الساطع بمنتصفها
-            ctx.strokeStyle = frameCount % 2 === 0 ? "#ff0055" : "#ff69b4";
-            ctx.lineWidth = 1.5;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "#ff1493";
-            ctx.stroke();
-
-            // رسم النقاط المتوهجة (الشرر) على حواف الهيكل الدائري تماماً كالفيديو
-            ctx.beginPath();
-            ctx.arc(
-              line.currentX,
-              line.currentY,
-              Math.random() * 2 + 1,
-              0,
-              Math.PI * 2,
-            );
-            ctx.fillStyle = Math.random() > 0.5 ? "#ffffff" : "#ffb6c1";
-            ctx.fill();
+            particle.draw();
           });
         }
 
-        // --- رسم وتحديث بتلات الورد المتساقطة بشكل دائم ---
         petals.forEach((petal) => {
           petal.y += petal.speedY;
           petal.x += petal.speedX;
           petal.rotation += petal.rotSpeed;
 
-          // إعادة تدوير البتلة إذا خرجت من أسفل الشاشة
           if (petal.y > canvas.height) {
             petal.y = -20;
             petal.x = Math.random() * canvas.width;
@@ -385,11 +451,9 @@
           ctx.save();
           ctx.translate(petal.x, petal.y);
           ctx.rotate(petal.rotation);
-
-          // رسم بتلة ورد طبيعية بيضاوية ولطيفة
           ctx.beginPath();
-          ctx.ellipse(0, 0, petal.size, petal.size * 1.6, 0, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255, 20, 147, 0.6)"; // وردي شفاف متناغم مع الفيديو
+          ctx.ellipse(0, 0, petal.size, petal.size * 1.5, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 30, 140, 0.5)";
           ctx.shadowBlur = 4;
           ctx.shadowColor = "#ff69b4";
           ctx.fill();
