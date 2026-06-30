@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Heart Animation Like Video</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #000000;
+        color: white;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* واجهة إدخال الاسم */
+      #input-container {
+        text-align: center;
+        background: rgba(20, 20, 20, 0.8);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 0 30px rgba(255, 20, 147, 0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        z-index: 10;
+        transition: all 0.5s ease;
+      }
+
+      h2 {
+        font-weight: 300;
+        margin-bottom: 25px;
+        letter-spacing: 1px;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      }
+
+      input {
+        padding: 12px 20px;
+        font-size: 18px;
+        border-radius: 30px;
+        border: 1.5px solid #ff1493;
+        background: #111;
+        color: white;
+        text-align: center;
+        margin-bottom: 20px;
+        outline: none;
+        width: 80%;
+        max-width: 250px;
+        transition: 0.3s;
+      }
+
+      input:focus {
+        box-shadow: 0 0 15px rgba(255, 20, 147, 0.6);
+        background: #000;
+      }
+
+      button {
+        padding: 12px 30px;
+        font-size: 16px;
+        background: linear-gradient(45deg, #ff1493, #ff69b4);
+        color: white;
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.3s ease;
+        display: block;
+        margin: 0 auto;
+      }
+
+      button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px #ff1493;
+      }
+
+      .hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        display: none !important;
+      }
+
+      /* حاوية الأنيميشن */
+      #animation-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      /* النصوص داخل القلب */
+      #text-inside-heart {
+        position: absolute;
+        text-align: center;
+        font-family: "Georgia", "Times New Roman", serif;
+        z-index: 2;
+        pointer-events: none;
+        transform: translateY(-10px);
+        opacity: 0;
+        transition: opacity 2s ease-in-out;
+      }
+
+      #displayName {
+        font-size: 2.5rem;
+        color: #ffffff;
+        font-weight: bold;
+        letter-spacing: 4px;
+        text-shadow:
+          0 0 15px rgba(255, 255, 255, 0.6),
+          0 0 30px rgba(255, 20, 147, 0.8);
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .sub-text {
+        font-size: 0.8rem;
+        color: #ffb6c1;
+        letter-spacing: 6px;
+        font-weight: bold;
+        text-shadow: 0 0 8px rgba(255, 20, 147, 0.6);
+        display: block;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="input-container">
+      <h2>أدخل الاسم لو سمحت</h2>
+      <input
+        type="text"
+        id="userName"
+        placeholder="اكتب الاسم هنا..."
+        maxlength="15"
+      />
+      <button onclick="startAnimation()">عرض المفاجأة</button>
+    </div>
+
+    <div id="animation-container" class="hidden">
+      <canvas id="heartCanvas"></canvas>
+      <div id="text-inside-heart">
+        <span id="displayName">YOU & ME</span>
+        <span class="sub-text">YOU ARE BEAUTIFUL</span>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("heartCanvas");
+      const ctx = canvas.getContext("2d");
+
+      let stage = "ecg"; // المراحل: ecg -> explosion -> heart
+      let ecgX = 0;
+      let ecgPoints = [];
+      let heartLines = [];
+      let petals = [];
+      let globalAlpha = 1;
+      let frameCount = 0;
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener("resize", resizeCanvas);
+
+      function startAnimation() {
+        const nameInput = document.getElementById("userName").value;
+        if (nameInput.trim() === "") {
+          alert("فضلاً، اكتب اسماً أولاً!");
+          return;
+        }
+
+        document.getElementById("displayName").innerText =
+          nameInput.toUpperCase();
+        document.getElementById("input-container").classList.add("hidden");
+        document
+          .getElementById("animation-container")
+          .classList.remove("hidden");
+
+        resizeCanvas();
+        initECG();
+        initPetals();
+        animate();
+      }
+
+      // 1. إعداد مسار نبضات القلب (ECG)
+      function initECG() {
+        ecgX = 0;
+        ecgPoints = [];
+        const centerY = canvas.height / 2;
+        const width = canvas.width;
+
+        // بناء خط نبضات مخصص يحاكي الفيديو بدقة
+        for (let x = 0; x < width * 0.7; x++) {
+          let y = centerY;
+          let relX = x - width * 0.35; // مركز النبضة في الثلث الأول من الشاشة تقريباً
+
+          if (relX > -50 && relX < 50) {
+            if (relX > -50 && relX < -30) y = centerY - (relX + 50) * 2;
+            else if (relX >= -30 && relX < -10)
+              y = centerY + (relX + 30) * 4 - 40;
+            else if (relX >= -10 && relX < 10)
+              y = centerY - (relX + 10) * 12 + 40;
+            else if (relX >= 10 && relX < 30)
+              y = centerY + (relX - 10) * 6 - 200;
+            else if (relX >= 30 && relX < 50)
+              y = centerY - (relX - 30) * 4 + 120;
+          }
+          ecgPoints.push({ x: x, y: y });
+        }
+      }
+
+      // المعادلة الرياضية للقلب
+      function getHeartPoint(t) {
+        return {
+          x: 16 * Math.pow(Math.sin(t), 3),
+          y:
+            13 * Math.cos(t) -
+            5 * Math.cos(2 * t) -
+            2 * Math.cos(3 * t) -
+            Math.cos(4 * t),
+        };
+      }
+
+      // 2. إعداد خطوط وهيكل القلب الهندسي
+      function initHeartLines() {
+        const totalLines = 90;
+        const baseScale = Math.min(canvas.width, canvas.height) / 30;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2 - 20;
+
+        for (let i = 0; i < totalLines; i++) {
+          let t = (i / totalLines) * Math.PI * 2;
+          let p = getHeartPoint(t);
+
+          // إحداثيات النقطة الخارجية على إطار القلب
+          let targetX = cx + p.x * baseScale;
+          let targetY = cy - p.y * baseScale;
+
+          heartLines.push({
+            angle: t,
+            startX: cx + (Math.random() - 0.5) * 40, // تنطلق من مركز قريب جداً
+            startY: cy + (Math.random() - 0.5) * 40,
+            targetX: targetX,
+            targetY: targetY,
+            currentX: cx,
+            currentY: cy,
+            speed: Math.random() * 0.03 + 0.02,
+            progress: 0,
+            lengthFactor: Math.random() * 0.4 + 0.6, // أطوال متفاوتة للخطوط لتعطي عمق الشرر
+          });
+        }
+      }
+
+      // 3. إعداد بتلات الورد المتساقطة
+      function initPetals() {
+        for (let i = 0; i < 40; i++) {
+          petals.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * -canvas.height,
+            size: Math.random() * 6 + 4,
+            speedY: Math.random() * 1.5 + 1,
+            speedX: Math.random() * 1 - 0.5,
+            rotation: Math.random() * Math.PI,
+            rotSpeed: Math.random() * 0.02 - 0.01,
+          });
+        }
+      }
+
+      // محرك الأنيميشن الرئيسي
+      function animate() {
+        frameCount++;
+
+        // خلفية سوداء نقية مع تأثير تلاشي خفيف جداً لترك أثر الخطوط المتوهجة خلفها
+        ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // --- المرحلة الأولى: نبض الـ ECG ---
+        if (stage === "ecg") {
+          ctx.beginPath();
+          ctx.strokeStyle = "#ff1493";
+          ctx.lineWidth = 4;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = "#ff1493";
+
+          let drawnCount = 0;
+          for (let i = 0; i < ecgPoints.length; i++) {
+            if (ecgPoints[i].x <= ecgX) {
+              if (i === 0) ctx.moveTo(ecgPoints[i].x, ecgPoints[i].y);
+              else ctx.lineTo(ecgPoints[i].x, ecgPoints[i].y);
+              drawnCount++;
+            }
+          }
+          ctx.stroke();
+
+          // حركة مؤشر النبض
+          ecgX += 12;
+
+          // عند انتهاء النبضة بالكامل، ننتقل لمرحلة الانفجار وبناء القلب
+          if (drawnCount >= ecgPoints.length) {
+            stage = "heart";
+            initHeartLines();
+            // إظهار النص في المنتصف تدريجياً
+            setTimeout(() => {
+              const textDiv = document.getElementById("text-inside-heart");
+              textDiv.style.opacity = "1";
+            }, 300);
+          }
+        }
+
+        // --- المرحلة الثانية والثالثة: تشكيل وهيكل القلب البارق ---
+        if (stage === "heart") {
+          heartLines.forEach((line) => {
+            if (line.progress < 1) {
+              line.progress += line.speed;
+              // حركة انسيابية ممتدة من المركز إلى الخارج
+              line.currentX =
+                line.startX + (line.targetX - line.startX) * line.progress;
+              line.currentY =
+                line.startY + (line.targetY - line.startY) * line.progress;
+            } else {
+              // تأثير النبض والوميض المستمر بعد اكتمال تشكيل الهيكل
+              let pulse = Math.sin(frameCount * 0.08 + line.angle * 4) * 10;
+              let baseScale = Math.min(canvas.width, canvas.height) / 30;
+              let p = getHeartPoint(line.angle);
+              line.currentX =
+                canvas.width / 2 + p.x * (baseScale + pulse * 0.2);
+              line.currentY =
+                canvas.height / 2 - 20 - p.y * (baseScale + pulse * 0.2);
+            }
+
+            // رسم الخطوط الشعاعية المضيئة المتجهة للهيكل
+            ctx.beginPath();
+            ctx.moveTo(line.startX, line.startY);
+            ctx.lineTo(line.currentX, line.currentY);
+
+            // الألوان المتدرجة بين الأحمر والوردي النيون والأبيض الساطع بمنتصفها
+            ctx.strokeStyle = frameCount % 2 === 0 ? "#ff0055" : "#ff69b4";
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#ff1493";
+            ctx.stroke();
+
+            // رسم النقاط المتوهجة (الشرر) على حواف الهيكل الدائري تماماً كالفيديو
+            ctx.beginPath();
+            ctx.arc(
+              line.currentX,
+              line.currentY,
+              Math.random() * 2 + 1,
+              0,
+              Math.PI * 2,
+            );
+            ctx.fillStyle = Math.random() > 0.5 ? "#ffffff" : "#ffb6c1";
+            ctx.fill();
+          });
+        }
+
+        // --- رسم وتحديث بتلات الورد المتساقطة بشكل دائم ---
+        petals.forEach((petal) => {
+          petal.y += petal.speedY;
+          petal.x += petal.speedX;
+          petal.rotation += petal.rotSpeed;
+
+          // إعادة تدوير البتلة إذا خرجت من أسفل الشاشة
+          if (petal.y > canvas.height) {
+            petal.y = -20;
+            petal.x = Math.random() * canvas.width;
+          }
+
+          ctx.save();
+          ctx.translate(petal.x, petal.y);
+          ctx.rotate(petal.rotation);
+
+          // رسم بتلة ورد طبيعية بيضاوية ولطيفة
+          ctx.beginPath();
+          ctx.ellipse(0, 0, petal.size, petal.size * 1.6, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 20, 147, 0.6)"; // وردي شفاف متناغم مع الفيديو
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = "#ff69b4";
+          ctx.fill();
+          ctx.restore();
+        });
+
+        requestAnimationFrame(animate);
+      }
+    </script>
+  </body>
+</html>
